@@ -41,3 +41,21 @@ type Error struct {
 	Code    string `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
 }
+
+type CreateCVDRequest struct {
+	// REQUIRED.
+	BuildInfo *BuildInfo `json:"build_info"`
+	// The number of CVDs to create. Use this field if creating more than one instance.
+	// Defaults to 1.
+	InstancesCount int `json:"instances_count"`
+	// REQUIRED. The build id used to download the fetch_cvd binary from.
+	FetchCVDBuildID string `json:"fetch_cvd_build_id"`
+}
+
+type BuildInfo struct {
+	// [REQUIRED] The Android build identifier.
+	BuildID string `json:"build_id"`
+	// [REQUIRED] A string to determine the specific product and flavor from
+	// the set of builds, e.g. aosp_cf_x86_64_phone-userdebug.
+	Target string `json:"target"`
+}

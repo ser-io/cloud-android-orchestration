@@ -13,3 +13,8 @@
 # limitations under the License.
 
 runtime: go116
+
+service: sorama
+vpc_access_connector:
+  name: "projects/google.com:cloud-android-jemoreira/locations/us-central1/connectors/vpc-connector-1"
+

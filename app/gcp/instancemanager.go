@@ -15,9 +15,13 @@
 package gcp
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 
 	apiv1 "cloud-android-orchestration/api/v1"
 	"cloud-android-orchestration/app"
@@ -56,6 +60,7 @@ func NewInstanceManager(config *app.IMConfig, ctx context.Context, opts ...optio
 }
 
 func (m *InstanceManager) GetHostAddr(zone string, host string) (string, error) {
+	// return "127.0.0.1", nil
 	instance, err := m.getHostInstance(zone, host)
 	if err != nil {
 		return "", err
@@ -121,6 +126,87 @@ func (m *InstanceManager) CreateHost(zone string, req *apiv1.CreateHostRequest, 
 	return result, nil
 }
 
+type Operation struct {
+	Name string `json:"name"`
+	// If the value is `false`, it means the operation is still in progress.
+	// If `true`, the operation is completed, and either `error` or `response` is
+	// available.
+	Done bool `json:"done"`
+	// Result will contain either an error or a result object but never both.
+	Result *OperationResult `json:"result,omitempty"`
+}
+
+type OperationResult struct {
+	Error *ErrorMsg `json:"error,omitempty"`
+}
+
+type ErrorMsg struct {
+	Error string `json:"error"`
+}
+
+func (m *InstanceManager) CreateCVD(zone, host string, req apiv1.CreateCVDRequest, user app.UserInfo) (apiv1.Operation, error) {
+	hostAddr, err := m.GetHostAddr(zone, host)
+	if err != nil {
+		return apiv1.Operation{}, err
+	}
+	var resErr apiv1.ErrorMsg
+	var op Operation
+	_, err = POSTRequest(hostURL(hostAddr, "/devices", ""), req, &op, &resErr)
+	if err != nil {
+		return apiv1.Operation{}, err
+	}
+	if resErr.Error != "" {
+		log.Println("The device host returned an error: ", resErr.Error)
+		return apiv1.Operation{}, errors.New(resErr.Error)
+	}
+	log.Printf("operatin returned %+v\n", op)
+	result := apiv1.Operation{
+		Name: op.Name,
+		Done: op.Done,
+	}
+	if op.Result != nil && op.Result.Error != nil {
+		result.Result = &apiv1.Result{
+			Error: apiv1.Error{
+				Message: op.Result.Error.Error,
+			},
+		}
+	}
+	return result, nil
+}
+
+func (m *InstanceManager) GetCVDOperation(zone, host, name string) (apiv1.Operation, error) {
+	log.Println("HERE")
+	hostAddr, err := m.GetHostAddr(zone, host)
+	if err != nil {
+		return apiv1.Operation{}, err
+	}
+	var resErr apiv1.ErrorMsg
+	var op Operation
+	url := hostURL(hostAddr, "/operations/"+name, "")
+	log.Println(url)
+	_, err = GETRequest(url, &op, &resErr)
+	log.Printf("op %+v\n", op)
+	if err != nil {
+		return apiv1.Operation{}, err
+	}
+	if resErr.Error != "" {
+		log.Println("The device host returned an error: ", resErr.Error)
+		return apiv1.Operation{}, errors.New(resErr.Error)
+	}
+	result := apiv1.Operation{
+		Name: op.Name,
+		Done: op.Done,
+	}
+	if op.Result != nil && op.Result.Error != nil {
+		result.Result = &apiv1.Result{
+			Error: apiv1.Error{
+				Message: op.Result.Error.Error,
+			},
+		}
+	}
+	return result, nil
+}
+
 func (m *InstanceManager) Close() error {
 	return m.client.Close()
 }
@@ -152,4 +238,52 @@ func buildDefaultNetworkName(projectID string) string {
 // Internal setter method used for testing only.
 func (m *InstanceManager) setUUIDFactory(newFactory func() string) {
 	m.uuidFactory = newFactory
+}
+
+func hostURL(addr string, path string, query string) string {
+	url := "http://" + addr + ":1080" + path
+	if query != "" {
+		url += "?" + query
+	}
+	return url
+}
+
+func GETRequest(url string, resObj interface{}, resErr *apiv1.ErrorMsg) (int, error) {
+	res, err := http.Get(url)
+	if err != nil {
+		return -1, fmt.Errorf("Failed to connect to device host: %w", err)
+	}
+	defer res.Body.Close()
+	return parseReply(res, resObj, resErr)
+}
+
+// Returns the http response's status code or an error.
+// If the status code indicates success (in the 2xx range) the response will be
+// in resObj, otherwise resErr will contain the error message.
+func POSTRequest(url string, msg interface{}, resObj interface{}, resErr *apiv1.ErrorMsg) (int, error) {
+	jsonBody, err := json.Marshal(msg)
+	if err != nil {
+		return -1, fmt.Errorf("Failed to parse JSON request: %w", err)
+	}
+	reqBody := bytes.NewBuffer(jsonBody)
+	res, err := http.Post(url, "application/json", reqBody)
+	if err != nil {
+		return -1, fmt.Errorf("Failed to connecto to device host: %w", err)
+	}
+	defer res.Body.Close()
+	return parseReply(res, resObj, resErr)
+}
+
+func parseReply(res *http.Response, resObj interface{}, resErr *apiv1.ErrorMsg) (int, error) {
+	var err error
+	dec := json.NewDecoder(res.Body)
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		err = dec.Decode(resErr)
+	} else {
+		err = dec.Decode(resObj)
+	}
+	if err != nil {
+		return -1, fmt.Errorf("Failed to parse device response: %w", err)
+	}
+	return res.StatusCode, nil
 }

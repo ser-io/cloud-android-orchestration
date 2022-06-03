@@ -56,10 +56,13 @@ func (c *Controller) SetupRoutes() {
 	router.Handle("/v1/zones/{zone}/hosts/{host}/connections/{connId}/messages", HTTPHandler(c.accountManager.Authenticate(c.Messages))).Methods("GET")
 	router.Handle("/v1/zones/{zone}/hosts/{host}/connections/{connId}/:forward", HTTPHandler(c.accountManager.Authenticate(c.Forward))).Methods("POST")
 	router.Handle("/v1/zones/{zone}/hosts/{host}/connections", HTTPHandler(c.accountManager.Authenticate(c.CreateConnection))).Methods("POST")
+	router.Handle("/v1/zones/{zone}/hosts/{host}/devices", HTTPHandler(c.accountManager.Authenticate(c.GetDevices))).Methods("GET")
 	router.Handle("/v1/zones/{zone}/hosts/{host}/devices/{deviceId}/files{path:/.+}", HTTPHandler(c.accountManager.Authenticate(c.GetDeviceFiles))).Methods("GET")
 
 	// Instance Manager Routes
 	router.Handle("/v1/zones/{zone}/hosts", HTTPHandler(c.accountManager.Authenticate(c.CreateHost))).Methods("POST")
+	router.Handle("/v1/zones/{zone}/hosts/{host}/cvds", HTTPHandler(c.accountManager.Authenticate(c.CreateCVD))).Methods("POST")
+	router.Handle("/v1/zones/{zone}/hosts/{host}/operations/{operation}", HTTPHandler(c.accountManager.Authenticate(c.GetCVDOperation))).Methods("GET")
 
 	// Infra route
 	router.HandleFunc("/v1/zones/{zone}/hosts/{host}/infra_config", func(w http.ResponseWriter, r *http.Request) {
@@ -68,8 +71,10 @@ func (c *Controller) SetupRoutes() {
 	}).Methods("GET")
 
 	// Global routes
-	router.Handle("/", HTTPHandler(c.accountManager.Authenticate(indexHandler)))
+	// router.Handle("/", HTTPHandler(c.accountManager.Authenticate(indexHandler)))
 
+	fs := http.FileServer(http.Dir("static"))
+	router.PathPrefix("/").Handler(fs)
 	http.Handle("/", router)
 }
 
@@ -92,6 +97,10 @@ func (c *Controller) GetDeviceFiles(w http.ResponseWriter, r *http.Request, user
 	devId := mux.Vars(r)["deviceId"]
 	path := mux.Vars(r)["path"]
 	return c.sigServer.ServeDeviceFiles(getZone(r), getHost(r), DeviceFilesRequest{devId, path, w, r}, user)
+}
+
+func (c *Controller) GetDevices(w http.ResponseWriter, r *http.Request, user UserInfo) error {
+	return c.sigServer.GetDevices(getZone(r), getHost(r))
 }
 
 func (c *Controller) CreateConnection(w http.ResponseWriter, r *http.Request, user UserInfo) error {
@@ -157,6 +166,29 @@ func (c *Controller) CreateHost(w http.ResponseWriter, r *http.Request, user Use
 	return nil
 }
 
+func (c *Controller) CreateCVD(w http.ResponseWriter, r *http.Request, user UserInfo) error {
+	var msg apiv1.CreateCVDRequest
+	err := json.NewDecoder(r.Body).Decode(&msg)
+	if err != nil {
+		return NewBadRequestError("Malformed JSON in request", err)
+	}
+	op, err := c.instanceManager.CreateCVD(getZone(r), getHost(r), msg, user)
+	if err != nil {
+		return err
+	}
+	replyJSON(w, op, http.StatusOK)
+	return nil
+}
+
+func (c *Controller) GetCVDOperation(w http.ResponseWriter, r *http.Request, _ UserInfo) error {
+	op, err := c.instanceManager.GetCVDOperation(getZone(r), getHost(r), getOperation(r))
+	if err != nil {
+		return err
+	}
+	replyJSON(w, op, http.StatusOK)
+	return nil
+}
+
 func buildInfraCfg(servers []string) apiv1.InfraConfig {
 	iceServers := []apiv1.IceServer{}
 	for _, server := range servers {
@@ -205,4 +237,8 @@ func getZone(r *http.Request) string {
 
 func getHost(r *http.Request) string {
 	return mux.Vars(r)["host"]
+}
+
+func getOperation(r *http.Request) string {
+	return mux.Vars(r)["operation"]
 }

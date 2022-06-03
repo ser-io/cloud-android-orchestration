@@ -1,9 +1,10 @@
 [AccountManager]
+# Type = "GAE"
 Type = "unix"
 
 [InstanceManager.GCP]
-ProjectId = ""
-HostImage = ""
+ProjectId = "google.com:cloud-android-jemoreira"
+HostImage = "projects/google.com:cloud-android-jemoreira/global/images/sorama-demo-q2"
 
 [Infra]
 STUNServers = ["stun:stun.l.google.com:19302"]
