@@ -19,6 +19,15 @@ type GCPInstance struct {
 	MinCPUPlatform string `json:"min_cpu_platform"`
 }
 
+type HostInstance struct {
+	Name string       `json:"name"`
+	GCP  *GCPInstance `json:"gcp,omitempty"`
+}
+
+type ListHostsResponse struct {
+	Hosts []HostInstance `json:"hosts,omitempty"`
+}
+
 type Operation struct {
 	Name string `json:"name"`
 	// Service-specific metadata associated with the operation.  It typically

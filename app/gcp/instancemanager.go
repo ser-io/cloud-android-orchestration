@@ -28,6 +28,7 @@ import (
 
 	compute "cloud.google.com/go/compute/apiv1"
 	"github.com/google/uuid"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 	"google.golang.org/protobuf/proto"
@@ -60,7 +61,6 @@ func NewInstanceManager(config *app.IMConfig, ctx context.Context, opts ...optio
 }
 
 func (m *InstanceManager) GetHostAddr(zone string, host string) (string, error) {
-	// return "127.0.0.1", nil
 	instance, err := m.getHostInstance(zone, host)
 	if err != nil {
 		return "", err
@@ -124,6 +124,25 @@ func (m *InstanceManager) CreateHost(zone string, req *apiv1.CreateHostRequest, 
 		Done: op.Done(),
 	}
 	return result, nil
+}
+
+func (m *InstanceManager) ListHosts(zone string, user app.UserInfo) (apiv1.ListHostsResponse, error) {
+	var hosts []apiv1.HostInstance
+	ctx := context.TODO()
+	req := &computepb.ListInstancesRequest{
+		Project: m.config.GCP.ProjectID,
+		Zone:    zone,
+		Filter:  proto.String("labels.cf-created_by:" + user.Username()),
+	}
+	it := m.client.List(ctx, req)
+	for {
+		instance, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		hosts = append(hosts, BuildHostInstance(instance))
+	}
+	return apiv1.ListHostsResponse{Hosts: hosts}, nil
 }
 
 type Operation struct {
@@ -286,4 +305,15 @@ func parseReply(res *http.Response, resObj interface{}, resErr *apiv1.ErrorMsg) 
 		return -1, fmt.Errorf("Failed to parse device response: %w", err)
 	}
 	return res.StatusCode, nil
+}
+
+func BuildHostInstance(in *computepb.Instance) apiv1.HostInstance {
+	return apiv1.HostInstance{
+		Name: in.GetName(),
+		GCP: &apiv1.GCPInstance{
+			// DiskSizeGB:
+			MachineType:    *in.MachineType,
+			MinCPUPlatform: *in.MinCpuPlatform,
+		},
+	}
 }

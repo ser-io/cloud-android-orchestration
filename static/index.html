@@ -17,28 +17,40 @@
 <html>
     <head>
         <title>Demo Q2</title>
-
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     </head>
-
     <body>
       <div>
-        <button id='create-host'>Create Host</button>
+        <h3>us-central1-b</h3> 
       </div>
-      <div>
-        <input type="text" id="hostname" size="50"/>
-        <button id='create-cvd'>Create CVD</button>
-      </div>
-      <div>
-        <input type="text" id="op-hostname" size="50"/>
-        <input type="text" id="op-name" size="50"/>
-        <button id='get-cvd-operation'>Get Operation</button>
-      </div>
-
-      <div>
-        <p>CVD Path: /v1/zones/{zone}/hosts/{host}/devices/{deviceId}/files/client.html<p/>
-       </div>
-
+      <section>
+        <h2> Host </h2>
+        <div>
+          <button id='create-host'>Create Host</button> <br/>
+          <button id='list-hosts'>List Host</button>
+        </div>
+      </section>
+      <section>
+        <h2> CVDs </h2>
+        <div>
+          <input type="text" id="hostname" placeholder="Host Name" size="50"/>
+          <button id='create-cvd'>Create CVD</button> 
+          <button id='get-cvds'>Get CVDs</button> 
+          <button id='get-cvd-operations'>GetOperations</button> 
+        </div>
+        <br/>
+        <div>
+          <input type="text" id="operation-name" size="50" placeholder="Operation Name"/>
+          <button id='get-cvd-operation'>Get Operation</button> <br/>
+        </div>
+        <div>
+          <p>WebRTC Path: /v1/zones/us-central1-b/hosts/{host}/devices/{deviceId}/files/client.html<p/>
+        </div>
+      </section>
+      <section>
+        <h2> Response </h2>
+        <textarea id="response" cols="100" rows="50"></textarea>
+      </section>
       <script src="js/index.js"></script>
     </body>
 </html>

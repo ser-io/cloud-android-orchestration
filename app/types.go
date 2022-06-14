@@ -42,8 +42,6 @@ type SignalingServer interface {
 	// Forwards the reques to the device's server unless it's a for a file that
 	// the signaling server needs to serve itself.
 	ServeDeviceFiles(zone string, host string, params DeviceFilesRequest, user UserInfo) error
-	// List devices
-	GetDevices(zone string, host string) error
 }
 
 type InstanceManager interface {
@@ -52,6 +50,8 @@ type InstanceManager interface {
 	GetHostAddr(zone string, host string) (string, error)
 	// Creates a host instance.
 	CreateHost(zone string, req *apiv1.CreateHostRequest, user UserInfo) (*apiv1.Operation, error)
+	// List  host instances.
+	ListHosts(zone string, user UserInfo) (apiv1.ListHostsResponse, error)
 	// Creates CVDs
 	CreateCVD(zone, host string, req apiv1.CreateCVDRequest, user UserInfo) (apiv1.Operation, error)
 	// Gets a CVD operation

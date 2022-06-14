@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -118,28 +117,6 @@ func (s *ForwardingSignalingServer) ServeDeviceFiles(zone string, host string, p
 
 		params.r.URL.Path = fmt.Sprintf("/devices/%s/files%s", params.devId, params.path)
 		devProxy.ServeHTTP(params.w, params.r)
-	}
-	return nil
-}
-
-func (s *ForwardingSignalingServer) GetDevices(zone string, host string) error {
-	log.Println("Get Devices Endpoit Hit")
-	hostAddr, err := s.instanceManager.GetHostAddr(zone, host)
-	if err != nil {
-		return err
-	}
-	var resErr apiv1.ErrorMsg
-	var result interface{}
-	url := hostURL(hostAddr, "/devices", "")
-	log.Println(url)
-	_, err = GETRequest(url, &result, &resErr)
-	log.Printf("devices %+v\n", result)
-	if err != nil {
-		return err
-	}
-	if resErr.Error != "" {
-		log.Println("The device host returned an error: ", resErr.Error)
-		return errors.New(resErr.Error)
 	}
 	return nil
 }

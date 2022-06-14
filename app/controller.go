@@ -18,9 +18,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	apiv1 "cloud-android-orchestration/api/v1"
 
@@ -51,18 +53,23 @@ func (c *Controller) ListenAndServe(addr string, handler http.Handler) error {
 
 func (c *Controller) SetupRoutes() {
 	router := mux.NewRouter()
+	hostForwarder := NewHostForwardHTTPHandler(c.instanceManager)
 
 	// Signaling Server Routes
 	router.Handle("/v1/zones/{zone}/hosts/{host}/connections/{connId}/messages", HTTPHandler(c.accountManager.Authenticate(c.Messages))).Methods("GET")
 	router.Handle("/v1/zones/{zone}/hosts/{host}/connections/{connId}/:forward", HTTPHandler(c.accountManager.Authenticate(c.Forward))).Methods("POST")
 	router.Handle("/v1/zones/{zone}/hosts/{host}/connections", HTTPHandler(c.accountManager.Authenticate(c.CreateConnection))).Methods("POST")
-	router.Handle("/v1/zones/{zone}/hosts/{host}/devices", HTTPHandler(c.accountManager.Authenticate(c.GetDevices))).Methods("GET")
 	router.Handle("/v1/zones/{zone}/hosts/{host}/devices/{deviceId}/files{path:/.+}", HTTPHandler(c.accountManager.Authenticate(c.GetDeviceFiles))).Methods("GET")
 
 	// Instance Manager Routes
 	router.Handle("/v1/zones/{zone}/hosts", HTTPHandler(c.accountManager.Authenticate(c.CreateHost))).Methods("POST")
+	router.Handle("/v1/zones/{zone}/hosts", HTTPHandler(c.accountManager.Authenticate(c.ListHosts))).Methods("GET")
 	router.Handle("/v1/zones/{zone}/hosts/{host}/cvds", HTTPHandler(c.accountManager.Authenticate(c.CreateCVD))).Methods("POST")
-	router.Handle("/v1/zones/{zone}/hosts/{host}/operations/{operation}", HTTPHandler(c.accountManager.Authenticate(c.GetCVDOperation))).Methods("GET")
+	router.Handle("/v1/zones/{zone}/hosts/{host}/operations/{operation}", hostForwarder.Get()).Methods("GET")
+	router.Handle("/v1/zones/{zone}/hosts/{host}/operations", hostForwarder.Get()).Methods("GET")
+	router.Handle("/v1/zones/{zone}/hosts/{host}/devices", hostForwarder.Get()).Methods("GET")
+	router.Handle("/v1/zones/{zone}/hosts/{host}/devices/{deviceId}/logs", hostForwarder.Get()).Methods("GET")
+	router.Handle("/v1/zones/{zone}/hosts/{host}/devices/{deviceId}/logs/{filename}", hostForwarder.Get()).Methods("GET")
 
 	// Infra route
 	router.HandleFunc("/v1/zones/{zone}/hosts/{host}/infra_config", func(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +83,35 @@ func (c *Controller) SetupRoutes() {
 	fs := http.FileServer(http.Dir("static"))
 	router.PathPrefix("/").Handler(fs)
 	http.Handle("/", router)
+}
+
+type HostForwardHTTPHandler struct {
+	im InstanceManager
+}
+
+func NewHostForwardHTTPHandler(im InstanceManager) *HostForwardHTTPHandler {
+	return &HostForwardHTTPHandler{im}
+}
+
+func (h *HostForwardHTTPHandler) Get() HTTPHandler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		zone := mux.Vars(r)["zone"]
+		host := mux.Vars(r)["host"]
+		split := strings.Split(r.RequestURI, "hosts/"+host)
+		addr, err := h.im.GetHostAddr(zone, host)
+		url := "http://" + addr + ":1080" + split[1]
+		res, err := http.Get(url)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		w.Write(b)
+		return nil
+	}
 }
 
 // Intercept errors returned by the HTTPHandler and transform them into HTTP
@@ -97,10 +133,6 @@ func (c *Controller) GetDeviceFiles(w http.ResponseWriter, r *http.Request, user
 	devId := mux.Vars(r)["deviceId"]
 	path := mux.Vars(r)["path"]
 	return c.sigServer.ServeDeviceFiles(getZone(r), getHost(r), DeviceFilesRequest{devId, path, w, r}, user)
-}
-
-func (c *Controller) GetDevices(w http.ResponseWriter, r *http.Request, user UserInfo) error {
-	return c.sigServer.GetDevices(getZone(r), getHost(r))
 }
 
 func (c *Controller) CreateConnection(w http.ResponseWriter, r *http.Request, user UserInfo) error {
@@ -163,6 +195,15 @@ func (c *Controller) CreateHost(w http.ResponseWriter, r *http.Request, user Use
 		return err
 	}
 	replyJSON(w, op, http.StatusOK)
+	return nil
+}
+
+func (c *Controller) ListHosts(w http.ResponseWriter, r *http.Request, user UserInfo) error {
+	hosts, err := c.instanceManager.ListHosts(getZone(r), user)
+	if err != nil {
+		return err
+	}
+	replyJSON(w, hosts, http.StatusOK)
 	return nil
 }
 

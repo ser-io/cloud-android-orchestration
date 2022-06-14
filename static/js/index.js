@@ -16,9 +16,6 @@
 
 'use strict';
 
-
-console.log("Hello World")
-
 document.getElementById("create-host").addEventListener("click", function() {
   console.log("create host button clicked")
   var url = "/v1/zones/us-central1-b/hosts"
@@ -35,6 +32,17 @@ document.getElementById("create-host").addEventListener("click", function() {
       }
   }));
   console.log(xhr.responseText)
+  document.getElementById('response').value = xhr.responseText;
+});
+
+document.getElementById("list-hosts").addEventListener("click", function() {
+  var host = document.getElementById("hostname").value
+  var url = "v1/zones/us-central1-b/hosts"
+  var xhr = new XMLHttpRequest();
+  xhr.open( "GET", url, false ); // false for synchronous request
+  xhr.send( null );
+  console.log(xhr.responseText)
+  document.getElementById('response').value = xhr.responseText
 });
 
 document.getElementById("create-cvd").addEventListener("click", function() {
@@ -55,12 +63,34 @@ document.getElementById("create-cvd").addEventListener("click", function() {
     fetch_cvd_build_id: "8560932"
   }));
   console.log(xhr.responseText)
+  document.getElementById('response').value = xhr.responseText;
+});
+
+document.getElementById("get-cvds").addEventListener("click", function() {
+  var host = document.getElementById("hostname").value
+  var url = "v1/zones/us-central1-b/hosts/" + host  + "/devices"
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open( "GET", url, false ); // false for synchronous request
+  xmlHttp.send( null );
+  console.log(xmlHttp.responseText)
+  document.getElementById('response').value = xmlHttp.responseText
+});
+
+document.getElementById("get-cvd-operations").addEventListener("click", function() {
+  console.log("get cvd operations button clicked")
+  var host = document.getElementById("hostname").value
+  var url = "v1/zones/us-central1-b/hosts/" + host  + "/operations"
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open( "GET", url, false ); // false for synchronous request
+  xmlHttp.send( null );
+  console.log(xmlHttp.responseText)
+  document.getElementById('response').value = xmlHttp.responseText
 });
 
 document.getElementById("get-cvd-operation").addEventListener("click", function() {
   console.log("get cvd operation button clicked")
-  var host = document.getElementById("op-hostname").value
-  var name = document.getElementById("op-name").value
+  var host = document.getElementById("hostname").value
+  var name = document.getElementById("operation-name").value
   console.log("host: " + host)
   console.log("name: " + name)
   var url = "v1/zones/us-central1-b/hosts/" + host  + "/operations/" + name 
@@ -69,4 +99,5 @@ document.getElementById("get-cvd-operation").addEventListener("click", function(
   xmlHttp.open( "GET", url, false ); // false for synchronous request
   xmlHttp.send( null );
   console.log(xmlHttp.responseText)
+  document.getElementById('response').value = xmlHttp.responseText
 });
