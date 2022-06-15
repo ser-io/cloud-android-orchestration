@@ -33,7 +33,7 @@
       <section>
         <h2> CVDs </h2>
         <div>
-          Hostname: <input type="text" id="hostname" placeholder="cf-49187911-2a22-4f2e-8a15-14b5107599ec" size="50"/>
+          Hostname: <input type="text" id="hostname" placeholder="cf-49187911-2a22-4f2e-8a15-14b5107599ec" size="50" class="incvdpath"/>
           <button id='get-cvds'>Get CVDs</button> 
           <button id='get-cvd-operations'>GetOperations</button> 
           <br/>
@@ -47,12 +47,15 @@
             Operation Name: <input type="text" id="cvd-operation-name" placeholder="e192f09f-12f5-4b9e-8797-446989606198" size="50"/>
             <button id='get-cvd-operation'>Get Operation</button> 
           </div>
+          <div style="padding-left:10px;padding-top:20px">
+            CVD Name <input type="text" id="cvd-name" placeholder="cvd-1" size="10" class="incvdpath" /> <br>
+            WebRTC Path: <a id="webrtc-link" href="/v1/zones/us-central1-b/hosts/{host}/devices/{deviceId}/files/client.html" target="_blank"></a><br/>
+          </div>
         </div>
         <div>
           <h3> Helpers (Copy|Paste) </h3>
           <p>Sample Build ID: 8673413</p>
           <p>Sample Target: aosp_cf_x86_64_phone-userdebug</p>
-          <p>WebRTC Path: /v1/zones/us-central1-b/hosts/{host}/devices/{deviceId}/files/client.html<p/>
         </div>
       </section>
       <section>
