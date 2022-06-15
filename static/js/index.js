@@ -30,7 +30,7 @@ document.getElementById("create-host").addEventListener("click", function() {
   fetch(url, { method: "POST", body: JSON.stringify(payload) })
     .then(response => response.json())
     .then(data => {
-      document.getElementById('response').value = JSON.stringify(data, null, 4)
+      prependResponse(JSON.stringify(data, null, 4))
     });
 });
 
@@ -40,7 +40,7 @@ document.getElementById("list-hosts").addEventListener("click", function() {
   fetch(url)
     .then(response => response.json())
     .then(data => {
-      document.getElementById('response').value = JSON.stringify(data, null, 4)
+      prependResponse(JSON.stringify(data, null, 4))
     });
 });
 
@@ -49,14 +49,14 @@ document.getElementById("create-cvd").addEventListener("click", function() {
   var url = "v1/zones/us-central1-b/hosts/" + host  + "/cvds"
   var payload = {
     build_info: {                                                               
-      build_id: "8673413",
-      target: "aosp_cf_x86_64_phone-userdebug"                                                       
+      build_id: document.getElementById("cvd-buildid").value,
+      target: document.getElementById("cvd-target").value,
     }                                                                          
   }
   fetch(url, { method: "POST", body: JSON.stringify(payload) })
     .then(response => response.json())
     .then(data => {
-      document.getElementById('response').value = JSON.stringify(data, null, 4)
+      prependResponse(JSON.stringify(data, null, 4))
     });
 });
 
@@ -66,7 +66,7 @@ document.getElementById("get-cvds").addEventListener("click", function() {
   fetch(url)
     .then(response => response.json())
     .then(data => {
-      document.getElementById('response').value = JSON.stringify(data, null, 4)
+      prependResponse(JSON.stringify(data, null, 4))
     });
 });
 
@@ -76,7 +76,24 @@ document.getElementById("get-cvd-operations").addEventListener("click", function
   fetch(url)
     .then(response => response.json())
     .then(data => {
-      document.getElementById('response').value = JSON.stringify(data, null, 4)
+      prependResponse(JSON.stringify(data, null, 4))
     });
 });
+
+document.getElementById("get-cvd-operation").addEventListener("click", function() {
+  var host = document.getElementById("hostname").value
+  var operationName = document.getElementById("cvd-operation-name").value
+  var url = "v1/zones/us-central1-b/hosts/" + host  + "/operations/" + operationName
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      prependResponse(JSON.stringify(data, null, 4))
+    });
+});
+
+function prependResponse(response) {
+  var current = document.getElementById('response').value
+  document.getElementById('response').value =
+    response + "\n\n----------------------------------------------\n\n" + current 
+}
 
