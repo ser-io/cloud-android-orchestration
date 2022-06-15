@@ -168,9 +168,25 @@ func (m *InstanceManager) CreateCVD(zone, host string, req apiv1.CreateCVDReques
 	if err != nil {
 		return apiv1.Operation{}, err
 	}
+	hostReq := struct {
+		BuildInfo struct {
+			BuildID string `json:"build_id"`
+			Target  string `json:"target"`
+		} `json:"build_info"`
+		FetchCVDBuildID string `json:"fetch_cvd_build_id"`
+	}{
+		BuildInfo: struct {
+			BuildID string `json:"build_id"`
+			Target  string `json:"target"`
+		}{
+			BuildID: req.BuildInfo.BuildID,
+			Target:  req.BuildInfo.Target,
+		},
+		FetchCVDBuildID: "8687975",
+	}
 	var resErr apiv1.ErrorMsg
 	var op Operation
-	_, err = POSTRequest(hostURL(hostAddr, "/devices", ""), req, &op, &resErr)
+	_, err = POSTRequest(hostURL(hostAddr, "/devices", ""), hostReq, &op, &resErr)
 	if err != nil {
 		return apiv1.Operation{}, err
 	}
@@ -178,7 +194,7 @@ func (m *InstanceManager) CreateCVD(zone, host string, req apiv1.CreateCVDReques
 		log.Println("The device host returned an error: ", resErr.Error)
 		return apiv1.Operation{}, errors.New(resErr.Error)
 	}
-	log.Printf("operatin returned %+v\n", op)
+	log.Printf("operation returned %+v\n", op)
 	result := apiv1.Operation{
 		Name: op.Name,
 		Done: op.Done,

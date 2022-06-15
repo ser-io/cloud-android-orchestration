@@ -59,8 +59,6 @@ document.getElementById("create-cvd").addEventListener("click", function() {
       build_id: "8673413",
       target: "aosp_cf_x86_64_phone-userdebug"                                                       
     },                                                                          
-    instances_count: 10,
-    fetch_cvd_build_id: "8560932"
   }));
   console.log(xhr.responseText)
   document.getElementById('response').value = xhr.responseText;
