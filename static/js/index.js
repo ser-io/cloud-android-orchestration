@@ -35,7 +35,6 @@ document.getElementById("create-host").addEventListener("click", function() {
 });
 
 document.getElementById("list-hosts").addEventListener("click", function() {
-  var host = document.getElementById("hostname").value
   var url = "v1/zones/us-central1-b/hosts"
   fetch(url)
     .then(response => response.json())
@@ -97,3 +96,16 @@ function prependResponse(response) {
     response + "\n\n----------------------------------------------\n\n" + current 
 }
 
+function updateWebrtcLink() {
+  const zone = "us-central-1b";
+  const host = document.getElementById("hostname").value;
+  const deviceId = document.getElementById("cvd-name").value;
+  const path = deviceId != ""?
+    `/v1/zones/${zone}/hosts/${host}/devices/${deviceId}/files/client.html`:
+    'CVD name is empty';
+  let link = document.getElementById('webrtc-link');
+  link.textContent = path;
+  link.href = path;
+}
+
+document.querySelectorAll('.incvdpath').forEach(i => i.addEventListener('input', updateWebrtcLink));
