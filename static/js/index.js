@@ -16,6 +16,8 @@
 
 'use strict';
 
+const DEFAULT_ZONE = "us-central1-b";
+
 function prependResponse(response) {
   var current = document.getElementById('response').value
   document.getElementById('response').value =
@@ -34,68 +36,88 @@ function updateWebrtcLink() {
   link.href = path;
 }
 
+function createHost(zone = DEFAULT_ZONE, diskSizeGb = 30, machineType = "n1-standard-4") {
+  var url = `/v1/zones/${zone}/hosts`;
+  var payload = {
+    create_host_instance_request: {
+      gcp: {
+        disk_size_gb: diskSizeGb,
+        machine_type: `zones/${zone}/machineTypes/${machineType}`,
+        min_cpu_platform: "Intel Haswell"
+      }
+    }
+  };
+  return fetch(url, { method: "POST", body: JSON.stringify(payload) })
+    .then(response => response.json());
+}
+
+function listHosts(zone = DEFAULT_ZONE) {
+  var url = `v1/zones/${zone}/hosts`;
+  return fetch(url)
+    .then(response => response.json());
+}
+
+function createCVD(host, zone = DEFAULT_ZONE) {
+  var url = `v1/zones/${zone}/hosts/${host}/cvds`;
+  var payload = {
+    build_info: {                                                               
+      build_id: document.getElementById("cvd-buildid").value,
+      target: document.getElementById("cvd-target").value,
+    }                                                                          
+  };
+  return fetch(url, { method: "POST", body: JSON.stringify(payload) })
+    .then(response => response.json());
+}
+
+function getCVDs(host, zone = DEFAULT_ZONE) {
+    var url = `v1/zones/${zone}/hosts/${host}/devices`;
+    return fetch(url)
+      .then(response => response.json());
+}
+
+function getOperations(host, zone = DEFAULT_ZONE) {
+    var url = `v1/zones/${zone}/hosts/${host}/operations`;
+    return fetch(url)
+      .then(response => response.json());
+}
+
+function getOperation(operationName, host, zone = DEFAULT_ZONE) {
+    var url = `v1/zones/${zone}/hosts/${host}/operations/${operationName}`;
+    return fetch(url)
+      .then(response => response.json());
+}
 
 window.onload = e => {
 
   document.getElementById("create-host").addEventListener("click", function() {
-    var url = "/v1/zones/us-central1-b/hosts"
-    var payload = {
-      create_host_instance_request: {
-        gcp: {
-          disk_size_gb: 30,                                                                                                                                                                                                                                                       
-          machine_type: "zones/us-central1-b/machineTypes/n1-standard-4",                                                                                                                                                                                                         
-          min_cpu_platform: "Intel Haswell"
-        }
-      }
-    }
-    fetch(url, { method: "POST", body: JSON.stringify(payload) })
-      .then(response => response.json())
-      .then(data => {
-        prependResponse(JSON.stringify(data, null, 4))
-      });
+    createHost().then(data => {
+      prependResponse(JSON.stringify(data, null, 4))
+    });
   });
 
   document.getElementById("list-hosts").addEventListener("click", function() {
-    var url = "v1/zones/us-central1-b/hosts"
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        prependResponse(JSON.stringify(data, null, 4))
-      });
+    listHosts().then(data => {
+      prependResponse(JSON.stringify(data, null, 4))
+    });
   });
 
   document.getElementById("create-cvd").addEventListener("click", function() {
     var host = document.getElementById("hostname").value
-    var url = "v1/zones/us-central1-b/hosts/" + host  + "/cvds"
-    var payload = {
-      build_info: {                                                               
-        build_id: document.getElementById("cvd-buildid").value,
-        target: document.getElementById("cvd-target").value,
-      }                                                                          
-    }
-    fetch(url, { method: "POST", body: JSON.stringify(payload) })
-      .then(response => response.json())
-      .then(data => {
+    createCVD(host).then(data => {
         prependResponse(JSON.stringify(data, null, 4))
       });
   });
 
   document.getElementById("get-cvds").addEventListener("click", function() {
     var host = document.getElementById("hostname").value
-    var url = "v1/zones/us-central1-b/hosts/" + host  + "/devices"
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
+    getCVDs(host).then(data => {
         prependResponse(JSON.stringify(data, null, 4))
       });
   });
 
   document.getElementById("get-cvd-operations").addEventListener("click", function() {
     var host = document.getElementById("hostname").value
-    var url = "v1/zones/us-central1-b/hosts/" + host  + "/operations"
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
+    getOperations(host).then(data => {
         prependResponse(JSON.stringify(data, null, 4))
       });
   });
@@ -103,10 +125,7 @@ window.onload = e => {
   document.getElementById("get-cvd-operation").addEventListener("click", function() {
     var host = document.getElementById("hostname").value
     var operationName = document.getElementById("cvd-operation-name").value
-    var url = "v1/zones/us-central1-b/hosts/" + host  + "/operations/" + operationName
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
+    getOperation(host, operationName).then(data => {
         prependResponse(JSON.stringify(data, null, 4))
       });
   });
