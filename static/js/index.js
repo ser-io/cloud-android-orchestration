@@ -24,12 +24,16 @@ function prependResponse(response) {
     response + "\n\n----------------------------------------------\n\n" + current 
 }
 
+function getWebrtcLink(host, deviceId, zone = DEFAUL_ZONE) {
+    return `/v1/zones/${zone}/hosts/${host}/devices/${deviceId}/files/client.html`;
+}
+
 function updateWebrtcLink() {
   const zone = "us-central1-b";
   const host = document.getElementById("hostname").value;
   const deviceId = document.getElementById("cvd-name").value;
   const path = deviceId != ""?
-    `/v1/zones/${zone}/hosts/${host}/devices/${deviceId}/files/client.html`:
+    getWebRtcLink(host, deviceId, zone):
     'CVD name is empty';
   let link = document.getElementById('webrtc-link');
   link.textContent = path;
@@ -57,13 +61,13 @@ function listHosts(zone = DEFAULT_ZONE) {
     .then(response => response.json());
 }
 
-function createCVD(host, zone = DEFAULT_ZONE) {
+function createCVD(host, buildId = "8673413", target = "aosp_cf_x86_64_phone-userdebug", zone = DEFAULT_ZONE) {
   var url = `v1/zones/${zone}/hosts/${host}/cvds`;
   var payload = {
-    build_info: {                                                               
-      build_id: document.getElementById("cvd-buildid").value,
-      target: document.getElementById("cvd-target").value,
-    }                                                                          
+    build_info: {
+      build_id: buildId,
+      target: target,
+    }
   };
   return fetch(url, { method: "POST", body: JSON.stringify(payload) })
     .then(response => response.json());
@@ -103,7 +107,9 @@ window.onload = e => {
 
   document.getElementById("create-cvd").addEventListener("click", function() {
     var host = document.getElementById("hostname").value
-    createCVD(host).then(data => {
+    var buildId = document.getElementById("cvd-buildid").value;
+    var target = document.getElementById("cvd-target").value;
+    createCVD(host, buildId, target).then(data => {
         prependResponse(JSON.stringify(data, null, 4))
       });
   });
