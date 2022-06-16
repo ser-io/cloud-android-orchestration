@@ -23,7 +23,7 @@ function prependResponse(response) {
 }
 
 function updateWebrtcLink() {
-  const zone = "us-central-1b";
+  const zone = "us-central1-b";
   const host = document.getElementById("hostname").value;
   const deviceId = document.getElementById("cvd-name").value;
   const path = deviceId != ""?
